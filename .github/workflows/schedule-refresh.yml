@@ -11,6 +11,8 @@ permissions:
 jobs:
   refresh-and-commit:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_USERNAME: ${{ github.repository_owner }}
     steps:
       - name: Create project refresh token
         id: project-refresh-token
