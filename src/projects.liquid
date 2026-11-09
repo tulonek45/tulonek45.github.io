@@ -1,0 +1,32 @@
+---
+layout: base.liquid
+title: Projects
+description: Recent public GitHub projects by Kasper Tulonen.
+permalink: /projects/index.html
+---
+
+<h1>Projects</h1>
+<p>Recent public repositories owned by <a href="https://github.com/tulonek45">tulonek45</a>,
+ordered by the latest push.</p>
+
+{% if projects.repositories.size > 0 %}
+<div class="project-grid">
+{% for repo in projects.repositories %}
+  <article class="project-card">
+    <h2><a href="{{ repo.html_url | escape }}">{{ repo.name | escape }}</a></h2>
+    {% if repo.description %}
+    <p>{{ repo.description | escape }}</p>
+    {% else %}
+    <p class="muted">No description provided.</p>
+    {% endif %}
+    <ul class="project-meta">
+      {% if repo.language %}<li>{{ repo.language | escape }}</li>{% endif %}
+      <li>{{ repo.stargazers_count }} stars</li>
+      {% if repo.pushed_at %}<li>Updated {{ repo.pushed_at | slice: 0, 10 | escape }}</li>{% endif %}
+    </ul>
+  </article>
+{% endfor %}
+</div>
+{% else %}
+<p>No public repositories were found, yet.</p>
+{% endif %}

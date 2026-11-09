@@ -1,0 +1,21 @@
+{
+  "name": "tulonek45-personal-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "My personal site built with Eleventy",
+  "scripts": {
+    "build": "node scripts/refresh-projects.cjs && eleventy",
+    "build:site": "eleventy",
+    "start": "node scripts/refresh-projects.cjs && eleventy --serve",
+    "test": "jest --runInBand",
+    "refresh-projects": "node scripts/refresh-projects.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.2",
+    "jest": "^30.5.2",
+    "dotenv": "^18.0.9"
+  }
+}
