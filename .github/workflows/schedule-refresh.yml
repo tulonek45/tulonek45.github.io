@@ -1,0 +1,56 @@
+name: Scheduled Project Refresh
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create project refresh token
+        id: project-refresh-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.REFRESH_APP_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.project-refresh-token.outputs.token }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Refresh projects
+        run: npm run refresh-projects
+
+      - name: Commit refreshed snapshot to main
+        env:
+          GH_TOKEN: ${{ steps.project-refresh-token.outputs.token }}
+          APP_SLUG: ${{ steps.project-refresh-token.outputs.app-slug }}
+        run: |
+          if git diff --quiet -- src/_data/projects.json; then
+            echo "Project snapshot is unchanged."
+          else
+            bot_user_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+            git config user.name "${APP_SLUG}[bot]"
+            git config user.email "${bot_user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+            git add src/_data/projects.json
+            git commit -m "chore: refresh projects snapshot"
+            git push origin HEAD:refs/heads/main
+          fi

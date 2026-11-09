@@ -1,0 +1,79 @@
+name: Validate site
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate site
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GITHUB_USERNAME: ${{ github.repository_owner }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build site and refresh projects
+        run: npm run build
+
+  commit-project-snapshot:
+    name: Commit refreshed project snapshot
+    needs: validate
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: false
+          
+      - name: Create project refresh token
+        id: project-refresh-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.REFRESH_APP_ID }}
+          private-key: ${{ secrets.REFRESH_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
+      - name: "Commit refreshed project snapshot"
+        env:
+          GH_TOKEN: ${{ steps.project-refresh-token.outputs.token }}
+          APP_SLUG: ${{ steps.project-refresh-token.outputs.app-slug }}
+        run: |
+          if git diff --quiet -- src/_data/projects.json; then
+            echo "Project snapshot is unchanged."
+          else
+            bot_user_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+            git config user.name "${APP_SLUG}[bot]"
+            git config user.email "${bot_user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+            git add src/_data/projects.json
+            git commit -m "chore: refresh projects snapshot"
+            git push origin HEAD:refs/heads/main
+          fi
+
+
