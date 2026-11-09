@@ -43,7 +43,7 @@ jobs:
 
       - name: Refresh projects for polling
         if: github.event_name != 'push'
-        run: npm run refresh-projects -- --require-fresh
+        run: npm run refresh-projects
 
       - name: Refresh projects on main updates
         if: github.event_name == 'push'
