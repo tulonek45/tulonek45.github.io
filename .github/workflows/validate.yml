@@ -51,18 +51,6 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Check out pull request branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          persist-credentials: false
-
-      - name: Download refreshed project snapshot
-        uses: actions/download-artifact@v4
-        with:
-          name: projects-snapshot
-          path: src/_data
-
       - name: Create project refresh token
         id: project-refresh-token
         uses: actions/create-github-app-token@v2
@@ -72,6 +60,18 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
+
+      - name: Check out pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ steps.project-refresh-token.outputs.token }}
+
+      - name: Download refreshed project snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: projects-snapshot
+          path: src/_data
 
       - name: "Commit refreshed project snapshot"
         env:
@@ -89,4 +89,3 @@ jobs:
             git commit -m "chore: refresh projects snapshot"
             git push origin "HEAD:refs/heads/${PR_HEAD_REF}"
           fi
-
